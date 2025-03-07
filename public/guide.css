@@ -1,0 +1,166 @@
+/* Documentation Styles */
+.docs-container {
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+.docs-section {
+    background: var(--card-background);
+    border-radius: 0.75rem;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    border: 1px solid var(--border-color);
+}
+
+.docs-section h2 {
+    color: var(--text-color);
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.docs-section p {
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 1rem;
+}
+
+.endpoint {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: var(--background-color);
+    border-radius: 0.75rem;
+    border: 1px solid var(--border-color);
+}
+
+.endpoint h3 {
+    color: var(--text-color);
+    font-size: 1.4rem;
+    margin-bottom: 1rem;
+}
+
+.endpoint-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.method {
+    background: var(--primary-color);
+    color: var(--text-color);
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.code-block {
+    background: var(--background-color);
+    padding: 1rem;
+    border-radius: 0.75rem;
+    margin: 1rem 0;
+    overflow-x: auto;
+    border: 1px solid var(--border-color);
+}
+
+.code-block code {
+    font-family: 'Fira Code', monospace;
+    color: var(--text-color);
+    font-size: 0.9rem;
+}
+
+.params-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+}
+
+.params-table th,
+.params-table td {
+    padding: 0.75rem;
+    text-align: left;
+    border: 1px solid var(--border-color);
+}
+
+.params-table th {
+    color: var(--text-color);
+    font-weight: 600;
+    background: var(--background-color);
+}
+
+.params-table td {
+    color: var(--text-secondary);
+}
+
+.back-home {
+    text-align: center;
+    margin: 2rem 0;
+}
+
+.home-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: var(--text-color);
+    color: var(--background-color);
+    border-radius: 0.5rem;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.home-button:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.home-button i {
+    font-size: 1.1rem;
+}
+
+/* Lists */
+.docs-section ul {
+    list-style: disc;
+    padding-left: 1.5rem;
+    margin: 1rem 0;
+    color: var(--text-secondary);
+}
+
+.docs-section ul li {
+    margin-bottom: 0.5rem;
+}
+
+/* Code Highlighting */
+.code-block pre {
+    margin: 0;
+    white-space: pre-wrap;
+}
+
+/* JSON syntax highlighting */
+.json-key { color: #9cdcfe; }
+.json-string { color: #ce9178; }
+.json-number { color: #b5cea8; }
+.json-boolean { color: #569cd6; }
+.json-null { color: #569cd6; }
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .docs-section {
+        padding: 1.5rem;
+    }
+
+    .endpoint-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .params-table {
+        display: block;
+        overflow-x: auto;
+    }
+} 

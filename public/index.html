@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft Server Status | devRaikou</title>
+    <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="style.css" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <div class="content-wrapper">
+            <!-- Header -->
+            <header>
+                <h1>Minecraft Server Status</h1>
+                <p>Quickly retrieve the status of any Minecraft server</p>
+            </header>
+
+            <!-- Search Container -->
+            <div class="search-container">
+                <div class="search-box">
+                    <select id="editionSelect" class="edition-select">
+                        <option value="java">Java Edition</option>
+                        <option value="bedrock">Bedrock Edition</option>
+                    </select>
+                    <div class="input-group main-input">
+                        <input type="text" id="serverInput" placeholder="Enter server address">
+                    </div>
+                    <button id="checkButton">
+                        Submit
+                    </button>
+                </div>
+            </div>
+
+            <!-- Result Container -->
+            <div id="resultContainer" class="status-card">
+                <div class="server-info">
+                    <div class="server-favicon">
+                        <i class="fas fa-cube"></i>
+                    </div>
+                    <div class="server-details">
+                        <div class="server-header">
+                            <div class="server-name-ip">
+                                <span class="server-ip"></span>
+                                <span class="server-port"></span>
+                            </div>
+                            <div class="status-badge">
+                                <i class="fas fa-check-circle"></i> Online
+                            </div>
+                        </div>
+                        <div class="server-stats">
+                            <div class="stat-item">
+                                <i class="fas fa-users"></i>
+                                <span class="players-count">0/0</span>
+                                <span class="players-text">players</span>
+                            </div>
+                            <div class="stat-item">
+                                <i class="fas fa-code-branch"></i>
+                                <span class="server-version"></span>
+                            </div>
+                            <div class="stat-item">
+                                <i class="fas fa-tachometer-alt"></i>
+                                <span class="server-latency"></span>
+                            </div>
+                        </div>
+                        <div class="motd-content"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Error Container -->
+            <div id="errorContainer" class="error-container">
+                <div class="error-icon">
+                    <i class="fas fa-exclamation-circle"></i>
+                </div>
+                <div class="error-message"></div>
+            </div>
+
+            <!-- Sample Servers -->
+            <div class="sample-servers">
+                <div class="section-header">
+                    <i class="fas fa-gift"></i>
+                    <h2>Sample Servers</h2>
+                    <span class="subtitle">A few sample servers to test out our service</span>
+                    <a href="#" class="view-all">View All <i class="fas fa-arrow-right"></i></a>
+                </div>
+                
+                <div class="server-grid">
+                    <!-- Java Edition Servers -->
+                    <div class="server-card">
+                        <div class="server-type java">Java</div>
+                        <div class="server-name">SGHQ Network</div>
+                        <div class="server-address">play.sghq.eu</div>
+                    </div>
+                    <div class="server-card">
+                        <div class="server-type java">Java</div>
+                        <div class="server-name">Aurix Network</div>
+                        <div class="server-address">aurix.rip</div>
+                    </div>
+                    <div class="server-card">
+                        <div class="server-type java">Java</div>
+                        <div class="server-name">ExtremeCraft</div>
+                        <div class="server-address">play.extremecraft.net</div>
+                    </div>
+                    <div class="server-card">
+                        <div class="server-type java">Java</div>
+                        <div class="server-name">MineRival</div>
+                        <div class="server-address">ms.minerival.org</div>
+                    </div>
+
+                    <!-- Bedrock Edition Servers -->
+                    <div class="server-card">
+                        <div class="server-type bedrock">Bedrock</div>
+                        <div class="server-name">CraftersMC</div>
+                        <div class="server-address">play.craftersmc.net:19132</div>
+                    </div>
+                    <div class="server-card">
+                        <div class="server-type bedrock">Bedrock</div>
+                        <div class="server-name">KnightNetwork</div>
+                        <div class="server-address">bedrock.knightnw.com:19132</div>
+                    </div>
+                    <div class="server-card">
+                        <div class="server-type bedrock">Bedrock</div>
+                        <div class="server-name">RulerCraft</div>
+                        <div class="server-address">play.rulercraft.com</div>
+                    </div>
+                    <div class="server-card">
+                        <div class="server-type bedrock">Bedrock</div>
+                        <div class="server-name">LifeBlock</div>
+                        <div class="server-address">play-lifeblock.net</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- API Guide Link -->
+            <div class="api-guide-link">
+                <a href="/guide" class="guide-button">
+                    <i class="fas fa-book"></i>
+                    API Documentation
+                    <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>
+                        <i class="fas fa-cube"></i>
+                        About
+                    </h3>
+                    <p>Fast and reliable Minecraft server status checker for Java and Bedrock editions. Get real-time server information instantly.</p>
+                    <div class="social-links">
+                        <a href="https://github.com/devRaikou" target="_blank" title="GitHub">
+                            <i class="fab fa-github"></i>
+                        </a>
+                        <a href="https://discord.gg/sghq" target="_blank" title="Discord">
+                            <i class="fab fa-discord"></i>
+                        </a>
+                        <a href="https://twitter.com/devRaikou" target="_blank" title="Twitter">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="footer-section">
+                    <h3>
+                        <i class="fas fa-link"></i>
+                        Links
+                    </h3>
+                    <ul>
+                        <li>
+                            <a href="/guide">
+                                <i class="fas fa-book"></i>
+                                Documentation
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/guide#examples">
+                                <i class="fas fa-code"></i>
+                                Examples
+                            </a>
+                        </li>
+                        <li>
+                            <a href="https://github.com/devRaikou">
+                                <i class="fab fa-github"></i>
+                                GitHub
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>
+                        <i class="fas fa-envelope"></i>
+                        Contact
+                    </h3>
+                    <ul>
+                        <li>
+                            <a href="mailto:raikou@sghq.eu">
+                                <i class="fas fa-envelope"></i>
+                                Email
+                            </a>
+                        </li>
+                        <li>
+                            <a href="https://discord.gg/sghq">
+                                <i class="fab fa-discord"></i>
+                                Discord
+                            </a>
+                        </li>
+                        <li>
+                            <a href="https://twitter.com/devRaikou">
+                                <i class="fab fa-twitter"></i>
+                                Twitter
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 devRaikou</p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html> 
