@@ -105,9 +105,26 @@ pm2 startup
 ### Environment Variables
 Create a `.env` file in the root directory:
 ```env
+# Server Configuration
 PORT=3000
-RATE_LIMIT_WINDOW=60000
-RATE_LIMIT_MAX=60
+NODE_ENV=production
+
+# Rate Limiting
+RATE_LIMIT_WINDOW=60000  # 1 minute in milliseconds
+RATE_LIMIT_MAX=60        # 60 requests per minute
+
+# API Settings
+API_VERSION=v1
+BASE_URL=https://api.raikou.me
+
+# Timeouts (in milliseconds)
+JAVA_TIMEOUT=5000
+BEDROCK_TIMEOUT=5000
+DNS_TIMEOUT=3000
+
+# Cache Settings
+CACHE_ENABLED=true
+CACHE_TTL=300000        # 5 minutes in milliseconds
 ```
 
 ## 📝 License
