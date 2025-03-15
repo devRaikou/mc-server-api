@@ -11,17 +11,19 @@ const __dirname = path.dirname(__filename);
 
 const resolveDns = promisify(dns.resolve4);
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
-// Statik dosyaları serve et
+// Status monitoring variables
+let startTime = Date.now();
+let javaResponseTimes = [];
+let bedrockResponseTimes = [];
+
 app.use(express.static(path.join(__dirname, '../public')));
 
-// Minecraft protokol sabitlerini güncelleyelim
 const PACKET_HANDSHAKE = 0x00;
 const PACKET_STATUS_REQUEST = 0x00;
 const PROTOCOL_VERSION = 47; // 1.8+ protokolü
 
-// Bedrock için sabitler
 const BEDROCK_PACKET = Buffer.from([
   0x01, // Protocol version
   0x00, // Packet ID
@@ -433,14 +435,20 @@ class MinecraftServerStatus {
       let responseReceived = false;
 
       // Ping paketi oluştur
+      const timestamp = Buffer.alloc(8);
+      const now = BigInt(Date.now());
+      timestamp.writeBigInt64LE(now);
+
       const pingPacket = Buffer.concat([
         UNCONNECTED_PING,
-        Buffer.alloc(8), // Timestamp
+        timestamp,
         RAKNET_MAGIC
       ]);
 
       client.on('message', (msg) => {
         responseReceived = true;
+        clearTimeout(timeout);
+        
         try {
           // İlk byte kontrol
           if (msg[0] !== 0x1C) {
@@ -462,32 +470,24 @@ class MinecraftServerStatus {
             throw new Error('Incomplete server info');
           }
 
-          // MOTD ve versiyon bilgilerini düzgün şekilde ayır
-          let motdText = '';
-          let versionName = '';
-          let protocolVersion = 0;
-          let onlinePlayers = 0;
-          let maxPlayers = 0;
-          let gamemode = '';
+          // Sunucu bilgilerini parse et
+          const [
+            edition,
+            motdLine1,
+            protocolVersion,
+            versionName,
+            onlinePlayers,
+            maxPlayers,
+            serverGuid,
+            motdLine2,
+            gamemode = '',
+            gamemodeNumeric = '1',
+            portIPv4 = '',
+            portIPv6 = ''
+          ] = serverInfo;
 
-          // Bedrock sunucu yanıtını daha detaylı parse et
-          for (let i = 0; i < serverInfo.length; i++) {
-            const part = serverInfo[i];
-            
-            if (i === 1) { // MOTD
-              motdText = part;
-            } else if (i === 2) { // Protocol Version
-              protocolVersion = parseInt(part) || 0;
-            } else if (i === 3) { // Version Name
-              versionName = part.replace(/[^\x20-\x7E]/g, '').trim(); // Sadece yazdırılabilir karakterler
-            } else if (i === 4) { // Online Players
-              onlinePlayers = parseInt(part) || 0;
-            } else if (i === 5) { // Max Players
-              maxPlayers = parseInt(part) || 0;
-            } else if (i === 8) { // Gamemode
-              gamemode = part;
-            }
-          }
+          // MOTD'yi birleştir
+          const motdText = motdLine2 ? `${motdLine1}\n${motdLine2}` : motdLine1;
 
           // MOTD'yi işle
           const motd = {
@@ -496,7 +496,6 @@ class MinecraftServerStatus {
             html: this.convertMotdToHtml(motdText || 'No MOTD available')
           };
 
-          clearTimeout(timeout);
           client.close();
           
           resolve({
@@ -507,11 +506,11 @@ class MinecraftServerStatus {
             edition: 'bedrock',
             version: {
               name: versionName || 'Unknown',
-              protocol: protocolVersion
+              protocol: parseInt(protocolVersion) || 0
             },
             players: {
-              online: onlinePlayers,
-              max: maxPlayers,
+              online: parseInt(onlinePlayers) || 0,
+              max: parseInt(maxPlayers) || 0,
               list: []
             },
             motd: motd,
@@ -550,26 +549,44 @@ class MinecraftServerStatus {
       // Ping gönder ve yeniden deneme mekanizması
       let retryCount = 0;
       const maxRetries = 3;
+      const retryInterval = 1000;
       
       const sendPing = () => {
-        client.send(pingPacket, this.port, resolvedIp, (err) => {
-          if (err && retryCount < maxRetries) {
-            retryCount++;
-            setTimeout(sendPing, 1000);
-          } else if (err) {
-            client.close();
-            resolve({
-              status: 'error',
-              error: err.message,
-              host: this.host,
-              ip: resolvedIp,
-              port: this.port,
-              edition: 'bedrock'
-            });
-          }
-        });
+        try {
+          client.send(pingPacket, this.port, resolvedIp, (err) => {
+            if (err) {
+              this.debug('Send error:', err.message);
+              if (retryCount < maxRetries) {
+                retryCount++;
+                setTimeout(sendPing, retryInterval);
+              } else {
+                client.close();
+                resolve({
+                  status: 'error',
+                  error: err.message,
+                  host: this.host,
+                  ip: resolvedIp,
+                  port: this.port,
+                  edition: 'bedrock'
+                });
+              }
+            }
+          });
+        } catch (err) {
+          this.debug('Send error:', err.message);
+          client.close();
+          resolve({
+            status: 'error',
+            error: err.message,
+            host: this.host,
+            ip: resolvedIp,
+            port: this.port,
+            edition: 'bedrock'
+          });
+        }
       };
 
+      // İlk ping'i gönder
       sendPing();
 
       // 5 saniye timeout
@@ -888,9 +905,107 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
+// Status sayfasını serve et
+app.get('/status', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/status.html'));
+});
+
 // API rehber sayfasını serve et
 app.get('/guide', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/guide.html'));
+});
+
+// Status API endpoint
+app.get('/api/status', async (req, res) => {
+  try {
+    // Test sunucularının durumunu kontrol et
+    const testServers = {
+      java: { host: 'mc.hypixel.net', port: 25565 },
+      bedrock: { host: 'play.craftersmc.net', port: 19132 }
+    };
+
+    const javaStatus = new MinecraftServerStatus(testServers.java.host, testServers.java.port, 'java');
+    const bedrockStatus = new MinecraftServerStatus(testServers.bedrock.host, testServers.bedrock.port, 'bedrock');
+
+    // Her sunucu için ayrı ayrı kontrol et
+    let javaResult, bedrockResult;
+
+    try {
+      javaResult = await javaStatus.getStatus();
+    } catch (error) {
+      console.error('Java status check error:', error);
+      javaResult = { status: 'error', latency: 0 };
+    }
+
+    try {
+      bedrockResult = await bedrockStatus.getBedrockStatus();
+    } catch (error) {
+      console.error('Bedrock status check error:', error);
+      bedrockResult = { status: 'error', latency: 0 };
+    }
+
+    // Java sunucu durumu
+    const javaResponse = {
+      status: javaResult.status === 'online' ? 'active' : 'error',
+      responseTime: javaResult.latency || 0,
+      players: javaResult.players || null
+    };
+
+    if (javaResponse.responseTime > 0) {
+      javaResponseTimes.push(javaResponse.responseTime);
+      if (javaResponseTimes.length > 100) javaResponseTimes.shift();
+    }
+
+    // Bedrock sunucu durumu
+    const bedrockResponse = {
+      status: bedrockResult.status === 'online' ? 'active' : 'error',
+      responseTime: bedrockResult.latency || 0,
+      players: bedrockResult.players || null
+    };
+
+    if (bedrockResponse.responseTime > 0) {
+      bedrockResponseTimes.push(bedrockResponse.responseTime);
+      if (bedrockResponseTimes.length > 100) bedrockResponseTimes.shift();
+    }
+
+    // Genel sistem durumu
+    const systemStatus = (javaResponse.status === 'active' || bedrockResponse.status === 'active') ? 'operational' : 'error';
+    const uptime = Math.floor((Date.now() - startTime) / 1000);
+
+    res.json({
+      status: systemStatus,
+      uptime: uptime,
+      java: javaResponse,
+      bedrock: bedrockResponse,
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    console.error('Status check error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Internal server error',
+      uptime: Math.floor((Date.now() - startTime) / 1000),
+      java: { status: 'error', responseTime: 0, players: null },
+      bedrock: { status: 'error', responseTime: 0, players: null },
+      timestamp: Date.now()
+    });
+  }
+});
+
+// Response time monitoring middleware
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    if (req.path.includes('/java')) {
+      javaResponseTimes.push(duration);
+      if (javaResponseTimes.length > 100) javaResponseTimes.shift();
+    } else if (req.path.includes('/bedrock')) {
+      bedrockResponseTimes.push(duration);
+      if (bedrockResponseTimes.length > 100) bedrockResponseTimes.shift();
+    }
+  });
+  next();
 });
 
 // Sunucuyu başlat

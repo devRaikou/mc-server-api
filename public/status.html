@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Status | raikou.me</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="icon" type="image/x-icon" href="images/favicon.ico">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #0a0a0a 0%, #111111 100%);
+        }
+        .card-gradient {
+            background: linear-gradient(135deg, #171717 0%, #1a1a1a 100%);
+            border: 1px solid rgba(0, 0, 0, 0.6);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 
+                       0 2px 4px -1px rgba(0, 0, 0, 0.1),
+                       inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+        }
+        .nav-link {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: 0;
+            left: 50%;
+            background: #10b981;
+            transition: all 0.3s ease;
+            transform: translateX(-50%);
+            opacity: 0;
+        }
+        .nav-link:hover::after {
+            width: 100%;
+            opacity: 1;
+        }
+        .nav-link.active {
+            background: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+        }
+        .nav-link.active::after {
+            width: 100%;
+            opacity: 1;
+        }
+        .logo-text {
+            background: linear-gradient(to right, #fff, #10b981);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            transition: all 0.3s ease;
+        }
+        .logo-text:hover {
+            background: linear-gradient(to right, #10b981, #fff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            transform: scale(1.05);
+        }
+        .status-indicator {
+            transition: all 0.3s ease;
+        }
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .chart-container {
+            height: 240px;
+            position: relative;
+        }
+        .navbar {
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            background: rgba(0, 0, 0, 0.8);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+        .navbar:hover {
+            background: rgba(0, 0, 0, 0.9);
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen text-gray-100">
+    <nav class="navbar fixed w-full z-50">
+        <div class="max-w-5xl mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <a href="/" class="logo-text text-xl font-bold">raikou.me</a>
+                </div>
+                <div class="flex items-center space-x-1">
+                    <a href="/" class="nav-link px-4 py-2 rounded-lg text-sm text-zinc-400 hover:text-white">Home</a>
+                    <a href="/guide" class="nav-link px-4 py-2 rounded-lg text-sm text-zinc-400 hover:text-white">Guide</a>
+                    <a href="/status" class="nav-link active px-4 py-2 rounded-lg text-sm">Status</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="pt-20 max-w-5xl mx-auto px-4 py-8">
+        <header class="text-center mb-10">
+            <h1 class="text-3xl font-bold text-white mb-2">System Status</h1>
+            <p class="text-gray-400 text-sm">Real-time API monitoring dashboard</p>
+        </header>
+
+        <!-- Overall Status -->
+        <div class="card-gradient rounded-lg shadow-xl p-6 mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-semibold text-white">Overall Status</h2>
+                <div id="statusIndicator" class="flex items-center">
+                    <span class="h-3 w-3 rounded-full bg-green-500 mr-2 pulse"></span>
+                    <span class="text-green-400 font-medium text-sm">Operational</span>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-black bg-opacity-30 rounded-lg p-4">
+                    <p class="text-gray-500 text-xs mb-1">Last Updated</p>
+                    <p id="lastChecked" class="text-lg font-medium text-white">-</p>
+                </div>
+                <div class="bg-black bg-opacity-30 rounded-lg p-4">
+                    <p class="text-gray-500 text-xs mb-1">Uptime</p>
+                    <p id="uptime" class="text-lg font-medium text-white">-</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Endpoint Status -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div class="card-gradient rounded-lg shadow-xl p-6">
+                <h2 class="text-lg font-semibold text-white mb-4">Java Edition API</h2>
+                <div id="javaStatus" class="space-y-3">
+                    <div class="flex justify-between items-center bg-black bg-opacity-30 p-3 rounded-lg">
+                        <span class="text-gray-400 text-sm">Status</span>
+                        <span class="flex items-center">
+                            <span id="javaStatusIndicator" class="h-2.5 w-2.5 rounded-full bg-green-500 mr-2"></span>
+                            <span id="javaStatusText" class="text-green-400 text-sm">Active</span>
+                        </span>
+                    </div>
+                    <div class="flex justify-between items-center bg-black bg-opacity-30 p-3 rounded-lg">
+                        <span class="text-gray-400 text-sm">Response Time</span>
+                        <span id="javaResponseTime" class="text-white text-sm">-</span>
+                    </div>
+                </div>
+            </div>
+            <div class="card-gradient rounded-lg shadow-xl p-6">
+                <h2 class="text-lg font-semibold text-white mb-4">Bedrock Edition API</h2>
+                <div id="bedrockStatus" class="space-y-3">
+                    <div class="flex justify-between items-center bg-black bg-opacity-30 p-3 rounded-lg">
+                        <span class="text-gray-400 text-sm">Status</span>
+                        <span class="flex items-center">
+                            <span id="bedrockStatusIndicator" class="h-2.5 w-2.5 rounded-full bg-green-500 mr-2"></span>
+                            <span id="bedrockStatusText" class="text-green-400 text-sm">Active</span>
+                        </span>
+                    </div>
+                    <div class="flex justify-between items-center bg-black bg-opacity-30 p-3 rounded-lg">
+                        <span class="text-gray-400 text-sm">Response Time</span>
+                        <span id="bedrockResponseTime" class="text-white text-sm">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Response Time Graph -->
+        <div class="card-gradient rounded-lg shadow-xl p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-semibold text-white">Response Time History</h2>
+                <div class="flex space-x-2">
+                    <div class="flex items-center">
+                        <span class="h-2 w-2 rounded-full bg-green-500 mr-1"></span>
+                        <span class="text-xs text-gray-400">Java</span>
+                    </div>
+                    <div class="flex items-center">
+                        <span class="h-2 w-2 rounded-full bg-purple-500 mr-1"></span>
+                        <span class="text-xs text-gray-400">Bedrock</span>
+                    </div>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="responseTimeChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Chart.js varsayılan ayarları
+        Chart.defaults.color = '#9ca3af';
+        Chart.defaults.borderColor = 'rgba(0, 0, 0, 0.1)';
+        
+        // Grafik yapılandırması
+        const chartConfig = {
+            type: 'line',
+            data: {
+                labels: Array(12).fill(''),
+                datasets: [{
+                    label: 'Java Edition',
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    data: Array(12).fill(0)
+                }, {
+                    label: 'Bedrock Edition',
+                    borderColor: '#8b5cf6',
+                    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    data: Array(12).fill(0)
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 0
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        borderColor: '#374151',
+                        borderWidth: 1,
+                        padding: 8,
+                        displayColors: false,
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.dataset.label}: ${context.parsed.y}ms`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.05)'
+                        },
+                        ticks: {
+                            callback: value => `${value}ms`,
+                            font: {
+                                size: 10
+                            }
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            font: {
+                                size: 10
+                            },
+                            maxRotation: 0
+                        }
+                    }
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                }
+            }
+        };
+
+        const ctx = document.getElementById('responseTimeChart').getContext('2d');
+        const chart = new Chart(ctx, chartConfig);
+
+        function formatUptime(seconds) {
+            const days = Math.floor(seconds / 86400);
+            const hours = Math.floor((seconds % 86400) / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            
+            const parts = [];
+            if (days > 0) parts.push(`${days}d`);
+            if (hours > 0) parts.push(`${hours}h`);
+            if (minutes > 0) parts.push(`${minutes}m`);
+            if (parts.length === 0) parts.push('Just started');
+            
+            return parts.join(' ');
+        }
+
+        function updateEndpointStatus(type, data) {
+            const statusIndicator = document.getElementById(`${type}StatusIndicator`);
+            const statusText = document.getElementById(`${type}StatusText`);
+            const responseTimeElement = document.getElementById(`${type}ResponseTime`);
+            
+            if (!statusIndicator || !statusText || !responseTimeElement) return;
+
+            responseTimeElement.textContent = `${data.responseTime}ms`;
+
+            if (data.status === 'active') {
+                if (data.responseTime > 1000) {
+                    statusIndicator.className = 'h-2.5 w-2.5 rounded-full bg-yellow-500 mr-2';
+                    statusText.className = 'text-yellow-400 text-sm';
+                    statusText.textContent = 'Slow';
+                } else {
+                    statusIndicator.className = 'h-2.5 w-2.5 rounded-full bg-green-500 mr-2';
+                    statusText.className = 'text-green-400 text-sm';
+                    statusText.textContent = 'Active';
+                }
+            } else {
+                statusIndicator.className = 'h-2.5 w-2.5 rounded-full bg-red-500 mr-2';
+                statusText.className = 'text-red-400 text-sm';
+                statusText.textContent = 'Error';
+            }
+        }
+
+        function updateOverallStatus(status) {
+            const statusIndicator = document.getElementById('statusIndicator');
+            if (!statusIndicator) return;
+
+            let html = '';
+            switch (status) {
+                case 'operational':
+                    html = `
+                        <span class="h-3 w-3 rounded-full bg-green-500 mr-2 pulse"></span>
+                        <span class="text-green-400 font-medium text-sm">Operational</span>
+                    `;
+                    break;
+                case 'error':
+                    html = `
+                        <span class="h-3 w-3 rounded-full bg-red-500 mr-2"></span>
+                        <span class="text-red-400 font-medium text-sm">Error</span>
+                    `;
+                    break;
+                default:
+                    html = `
+                        <span class="h-3 w-3 rounded-full bg-yellow-500 mr-2"></span>
+                        <span class="text-yellow-400 font-medium text-sm">Degraded</span>
+                    `;
+            }
+            
+            statusIndicator.innerHTML = html;
+        }
+
+        let lastTimestamp = 0;
+        let updateInProgress = false;
+
+        async function updateStatus() {
+            if (updateInProgress) return;
+            updateInProgress = true;
+
+            try {
+                const response = await fetch('/api/status');
+                if (!response.ok) throw new Error('Network response was not ok');
+                
+                const data = await response.json();
+                
+                if (data.timestamp <= lastTimestamp) {
+                    updateInProgress = false;
+                    return;
+                }
+                lastTimestamp = data.timestamp;
+
+                const lastCheckedElement = document.getElementById('lastChecked');
+                if (lastCheckedElement) {
+                    lastCheckedElement.textContent = new Date().toLocaleString();
+                }
+                
+                const uptimeElement = document.getElementById('uptime');
+                if (uptimeElement) {
+                    uptimeElement.textContent = formatUptime(data.uptime);
+                }
+                
+                updateEndpointStatus('java', data.java);
+                updateEndpointStatus('bedrock', data.bedrock);
+                updateOverallStatus(data.status);
+
+                const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                
+                chart.data.labels.push(now);
+                chart.data.datasets[0].data.push(data.java.responseTime);
+                chart.data.datasets[1].data.push(data.bedrock.responseTime);
+
+                if (chart.data.labels.length > 12) {
+                    chart.data.labels.shift();
+                    chart.data.datasets[0].data.shift();
+                    chart.data.datasets[1].data.shift();
+                }
+
+                chart.update('none');
+            } catch (error) {
+                console.error('Error fetching status:', error);
+                updateOverallStatus('error');
+            } finally {
+                updateInProgress = false;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            updateStatus();
+            setInterval(updateStatus, 30000);
+        });
+    </script>
+</body>
+</html>
